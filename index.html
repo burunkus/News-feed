@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>News 24/7 Headlines</title>
+	<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500|Bellefair|Cinzel|Open+Sans" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css">
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+	<script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script>
+</head>
+<body>
+	<header>
+		<div class="header-title">
+			<h3>News 24/7</h3>
+		</div>
+	</header>
+	<div>
+	<nav>
+		<form>
+			<div class="row">
+				<div class="search-bar countrynav-container">
+					<div id="country-nav-bar">
+						<div class="btn-group control picker">
+							<button id="country-btn" class="btn dropdown-btn control">
+								<span class="current-country"></span>
+								<span class="arrow-down"></span>
+							</button>
+							<div class="dropdown-menu" style="max-height: 319px; overflow: hidden;">
+								<div class="search-box">
+									<input type="text" class="control" name="search" id="country-input">
+								</div>
+								<ul id="country" class="dropdown-menu inner select">
+									<li>Select Country</li>
+									<li data-c-code="ar">Argentina</li>
+									<li data-c-code="au">Australia</li>
+									<li data-c-code="at">Austria</li>
+									<li data-c-code="be">Belgium</li>
+									<li data-c-code="br">Brazil</li>
+									<li data-c-code="bg">Bulgaria</li>
+									<li data-c-code="ca">Canada</li>
+									<li data-c-code="cn">China</li>
+									<li data-c-code="co">Colombia</li>
+									<li data-c-code="cu">Cuba</li>
+									<li data-c-code="cz">Czech Republic</li>
+									<li data-c-code="eg">Egypt</li>
+									<li data-c-code="fr">France</li>
+									<li data-c-code="de">Germany</li>
+									<li data-c-code="gr">Greece</li>
+									<li data-c-code="hk">Hong Kong</li>
+									<li data-c-code="hu">Hungary</li>
+									<li data-c-code="in">India</li>
+									<li data-c-code="id">Indonesia</li>
+									<li data-c-code="ie">Ireland</li>
+									<li data-c-code="il">Israel</li>
+									<li data-c-code="it">Italy</li>
+									<li data-c-code="jp">Japan</li>
+									<li data-c-code="lv">Latvia</li>
+									<li data-c-code="lt">Lithuania</li>
+									<li data-c-code="my">Malaysia</li>
+									<li data-c-code="mx">Mexico</li>
+									<li data-c-code="ma">Morocco</li>
+									<li data-c-code="nl">Netherlands</li>
+									<li data-c-code="nz">New Zealand</li>
+									<li data-c-code="ng">Nigeria</li>
+									<li data-c-code="no">Norway</li>
+									<li data-c-code="ph">Philippines</li>
+									<li data-c-code="pl">Poland</li>
+									<li data-c-code="pt">Portugal</li>
+									<li data-c-code="ro">Romania</li>
+									<li data-c-code="ru">Russia</li>
+									<li data-c-code="sa">Saudi Arabia</li>
+									<li data-c-code="rs">Serbia</li>
+									<li data-c-code="sg">Singapore</li>
+									<li data-c-code="sk">Slovakia</li>
+									<li data-c-code="si">Slovenia</li>
+									<li data-c-code="za">South Africa</li>
+									<li data-c-code="kr">South Korea</li>
+									<li data-c-code="se">Sweden</li>
+									<li data-c-code="ch">Switzerland</li>
+									<li data-c-code="tw">Taiwan</li>
+									<li data-c-code="th">Thailand</li>
+									<li data-c-code="tr">Turkey</li>
+									<li data-c-code="ae">UAE</li>
+									<li data-c-code="ua">Ukraine</li>
+									<li data-c-code="gb">United Kingdom</li>
+									<li data-c-code="us">United States</li>
+									<li data-c-code="ve">Venuzuela</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div id="filter" class="filter country-filter">
+					<button>Search</button>
+				</div>
+			</div>
+		</form>
+		<form>
+			<div class="row">
+				<div class="search-bar source-nav-container">
+					<div id="source-nav-bar">
+						<div class="btn-group control picker">
+							<button id="source-btn" class="btn dropdown-btn control">
+								<span class="current-source">Select Source</span>
+								<span class="arrow-down"></span>
+							</button>
+							<div class="dropdown-menu" style="max-height: 319px; overflow: hidden;">
+								<div class="search-box">
+									<input type="text" class="control" name="search" id="source-input">
+								</div>
+								<ul id="source" class="dropdown-menu inner select">
+									<li>Select Source</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div id="filter" class="filter source-filter">
+					<button>Search</button>
+				</div>
+			</div>
+		</form>
+	</nav>
+	</div>
+	<main>
+		<!--
+	<div class="move-up">
+		<a href="#country"><i class="fa fa-angle-up fa-lg"></a>
+	</div>-->
+	</main>
+	<footer>
+		<div>
+			<p>This site is powered by the <a href="https://newsapi.org">News API</a></p>
+		</div>
+	</footer>
+	<script src="js/app.js"></script>
+</body>
+</html>
