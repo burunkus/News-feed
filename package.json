@@ -1,0 +1,7 @@
+{
+  "name": "news headlines",
+  "version": "1.0.0",
+  "devDependencies": {
+    "idb": "^2.1.1"
+  }
+}

@@ -197,8 +197,19 @@ form {
 }
 
 .filter button {
+	background-color: #0479bc;
+	border: none;
+	border-radius: 0;
+	color: #fff;
+	cursor: pointer;
+	padding: 5px 10px;
 	position: relative;
+	line-height: 1.5;
 	width: 100%;
+}
+
+.filter button:hover {
+	background-color: #2e6da4;
 }
 
 /*main*/
@@ -214,7 +225,7 @@ main {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: nowrap;
-	height: 250px;
+	height: auto;
 	justify-content: space-between;
 	margin-bottom: 5px;
 	padding: 3px;
@@ -223,12 +234,13 @@ main {
 
 .news-image-wrapper {
 	display: block;
+	margin-right: 10px;
+	overflow: hidden;
 	width: 40%;
 }
 
 .news-image-wrapper img {
 	display: block;
-	margin-right: 10px;
 	width: 100%;
 }
 
@@ -267,6 +279,28 @@ main {
 	right: 20%;
 }
 
+.notification {
+	background-color: #151e1e;
+	display: block;
+	position: absolute;
+	bottom: 20px;
+	width: 70%;
+}
+
+.notification p {
+	display: inline-block;
+	position: relative;
+	float: left;
+	padding: 2px 4px;
+}
+
+.cancel, .update {
+	color: red;
+	display: inline-block;
+	position: relative;
+	margin-right: 5px;
+}
+
 /*footer*/
 footer {
 	background-color: #000033;
@@ -288,9 +322,33 @@ footer > a {
 	text-decoration: none;
 }
 /*responsive design*/
-@media only screen and (min-width: 800px) {
+@media only screen and (max-width: 699px) {
+	nav, .news-feed {
+		flex-direction: column;
+	}
+	form {
+		width: 100%;
+	}
+	.row {
+		justify-content: space-around;
+	}
+	.search-bar {
+		width: 65%;
+	}
+	.filter {
+		width: 30%;
+	}
+	.news-image-wrapper, .news-box {
+		width: 100%;
+	}
+	.news-image-wrapper {
+		margin-right: 0;
+	}
+}
+@media only screen and (min-width: 700px) {
 	main {
 		max-width: 800px;
 		margin: 0 auto;
+		margin-top: 40px;
 	}
 }
