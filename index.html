@@ -25,7 +25,6 @@
 						<div class="btn-group control picker">
 							<button id="country-btn" class="btn dropdown-btn control">
 								<span class="current-country"></span>
-								<span class="arrow-down"></span>
 							</button>
 							<div class="dropdown-menu" style="max-height: 319px; overflow: hidden;">
 								<div class="search-box">
@@ -104,7 +103,6 @@
 						<div class="btn-group control picker">
 							<button id="source-btn" class="btn dropdown-btn control">
 								<span class="current-source">Select Source</span>
-								<span class="arrow-down"></span>
 							</button>
 							<div class="dropdown-menu" style="max-height: 319px; overflow: hidden;">
 								<div class="search-box">
@@ -125,17 +123,19 @@
 	</nav>
 	</div>
 	<main>
-		<!--
-	<div class="move-up">
-		<a href="#country"><i class="fa fa-angle-up fa-lg"></a>
-	</div>-->
+
 	</main>
+	<div class="notification">
+		<p>New news headlines available:</p>
+		<span id="refresh" class="notification-option">Refresh</span>
+		<span id="dismiss" class="notification-option">Dismiss</span>
+	</div>
 	<footer>
 		<div>
 			<p>This site is powered by the <a href="https://newsapi.org">News API</a></p>
 		</div>
 	</footer>
-	<script src="js/app.js"></script>
+	<!--<script src="js/app.js"></script>-->
 	<script src="js/bundle.js"></script>
 </body>
 </html>

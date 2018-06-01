@@ -1,119 +1,129 @@
 let idb = require('idb');
 
-const API_KEY = '8154e98e09f24ffdae1c67dc5c6ba100';
-const REVERSE_GEO_API_KEY = 'AIzaSyAI8vT0x9QxpqPUyO_-Flp6p2nnyU2oVnQ';
+const API_KEY = '';
+const REVERSE_GEO_API_KEY = '';
 
-//store the news
-let news;
+let app = {};
 
-//headline from any country of choice
-let country;
+let dbPromise = openDb();
 
-//headline from a specific source
-let source;
+//keep record of the previous search.
+let lastCountry;
+let lastSource;
 
-let userLat;
+//variables referenced through out the app
+let main = document.querySelector('main');
+let country = document.querySelector('.current-country');
+let source = document.querySelector('.current-source');
+let countryBtn = document.getElementById('country-btn');
+let sourceBtn = document.getElementById('source-btn');
 
-let userLng;
+//prevent source and country buttons from doing the default action i.e submit
+document.getElementById('country-btn').addEventListener('click', function(e) {
+	e.preventDefault();
+});
+document.getElementById('source-btn').addEventListener('click', function(e) {
+	e.preventDefault();
+});
 
-//check if geolocation is available on the users browser
-if(!navigator.geolocation) {
-  window.alert('your browser does not support geolocation service');
-}
+app.detectUserLocation = function() {
+  //check if geolocation is available on the users browser
+  if(!navigator.geolocation) {
+  	window.alert('your browser does not support geolocation service');
+  	return;
+  }
 
-function geoSuccess(position) {
-  getUserCurrentCountry(position.coords.latitude, position.coords.longitude);
-}
+  function geoSuccess(position) {
+  	app.getUserCurrentCountry(position.coords.latitude, position.coords.longitude);
+  }
 
-function geoError(error) {
-  window.alert(error.message + ': ' + 'This app uses your location to personalize your content. Please allow access');
-}
-
-navigator.geolocation.getCurrentPosition(geoSuccess, geoError);
+  function geoError(error) {
+  	window.alert(error.message + ': ' + 'This app uses your location to personalize your content. Please allow access');
+  	return;
+  }
+  navigator.geolocation.getCurrentPosition(geoSuccess, geoError);
+};
 
 //get the country of the user to enable customized news headline
 //based on the users location initially
-function getUserCurrentCountry(lat, lng) {
+app.getUserCurrentCountry = function(lat, lng) {
 
   //get user country using reverse geolocation
   let locationUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=country&key=${REVERSE_GEO_API_KEY}`;
 
-  //fetch the url over the network, if ok, format the response to json. then get the data
+  //fetch the url over the network, if ok, format the response to json. then use data
   //returned from the response.
-  fetch(locationUrl)
-   .then(function(response) {
-     if(response.ok) {
+  fetch(locationUrl).then(function(response) {
        return response.json();
-      } else {
-        window.alert('Geocoder failed due to: ' + response.status);
-      }
-    })
-    .then(function(country) {
+    }).then(function(country) {
       //get country short code in the short name property and convert to lowercase
       let countryShortName = country.results[0].address_components[0].short_name.toLowerCase();
+
       //get country full name.
       let countryFullName = country.results[0].address_components[0].long_name;
-      initiateDefaultSetup(countryShortName, countryFullName);
+
+      app.initiateDefaultSetup(countryShortName, countryFullName);
+
+    }).catch(function(error) {
+    	window.alert(`Network problem or something went wrong with the fetching data`);
     });
-}
+};
 
-function initiateDefaultSetup(shortName, fullName) {
-
+app.initiateDefaultSetup = function(shortName, fullName) {
+  //todo: prevent source and country button from default here
   //set user country to be the selected country in the country button
   document.querySelector('.current-country').textContent = fullName;
-
-  let url = `https://newsapi.org/v2/top-headlines?country=${shortName}&apiKey=${API_KEY}`;
-
-  let req = new Request(url);
-
-  //fetch news headlines from NEWS API
-  fetch(req)
-	  .then(function(response) {
-		  if(response.ok) {
-			  return response.json();
-		  } else {
-			  console.log(`Network Request for to newapi.org failed with error type ${response.code}: ${response.message}`);
-		    }
-	    })
-	  .then(function(headlines) {
-	  	//set received data to equal news, then call setUp
-		news = headlines;
-		setUp();
-	});
 
   //pipe the list of sources to the UI
   let sourceList = document.getElementById('source');
   let sourcesUrl = `https://newsapi.org/v2/sources?apiKey=${API_KEY}`;
   let reqs = new Request(sourcesUrl);
 
-  fetch(reqs)
-  .then(function(response) {
-    if(response.ok) {
+  //fetch all news sources
+  fetch(reqs).then(function(response) {
       return response.json();
-    } else {
-      console.log(`Network request for ${url} failed with response ${response.status}: ${response.statusText}`);
-    }
-  })
-  .then(function(data) {
-    let sources = data.sources;
-    for(let i = 0; i < sources.length; i++) {
-      let li = document.createElement('li');
-      li.dataset.sCode = sources[i].id;
-      li.textContent = sources[i].name;
-      sourceList.appendChild(li);
-    }
-  });
-}
+    }).then(function(data) {
+    	let sources = data.sources;
+    	for(let i = 0; i < sources.length; i++) {
+      		let li = document.createElement('li');
+      		li.dataset.sCode = sources[i].id;
+      		li.textContent = sources[i].name;
+      		sourceList.appendChild(li);
+    	}
+  	}).catch(function(error){
+  		console.log(error);
+  	});
 
-//set up the application
-function setUp() {
-  let country = document.querySelector('.current-country');
-  let source = document.querySelector('.current-source');
+  let url = `https://newsapi.org/v2/top-headlines?country=${shortName}&apiKey=${API_KEY}`;
+  let req = new Request(url);
+
+  //fetch news headlines from NEWS API
+  fetch(req).then(function(response) {
+  		return response.json();
+	}).then(function(headlines) {
+		app.storeInDb(headlines).then(function(){
+			console.log('headlines saved in Indexed DB, data is now available for offline use');
+		});
+		app.updateDisplay(headlines);
+		app.setUp();
+	}).catch(function(error){    //if we can't connect to the network...
+		console.log(`Network request have failed, we are offline:`, error);
+		app.showCachedHeadlines().then(function(offlineData) {
+			if(!offlineData.length) {
+				console.log('No data recieved from the Indexed db');
+			} else {
+				console.log('you might be viewing an outdated content');
+				app.updateDisplay(offlineData);
+			}
+		});
+	});
+};
+
+//set up the application event listeners
+app.setUp = function() {
+
   let searchNewsByCountryButton = document.querySelector('.country-filter');
   let searchNewsBySourceButton = document.querySelector('.source-filter');
-  let main = document.querySelector('main');
-  let countryBtn = document.getElementById('country-btn');
-  let sourceBtn = document.getElementById('source-btn');
   let countryInput = document.getElementById('country-input');
   let sourceInput = document.getElementById('source-input');
   let countryDropDown = document.getElementById('country-nav-bar').getElementsByClassName('dropdown-menu');
@@ -123,26 +133,37 @@ function setUp() {
   let lastCountry = country.innerHTML;
   let lastSource = source.innerHTML;
 
-  //finalResult will contain the results that need to be displayed after search has been done
-  //Each will be an array containing objects, each object will represent a news
-  let finalResult;
-
-  //set finalResult to equal all retrieved news, then call updateDisplay() so all news will be displayed initially
-  finalResult = news;
-  updateDisplay();
-
   //when the search country/source button is clicked, open the dropdown
-  countryBtn.addEventListener('click', function(e) {
-  	e.preventDefault();
-  	for(let i = 0; i < countryDropDown.length; i++) {
-  	  	countryDropDown[i].classList.toggle('open');
-  }});
+  //add listener to the body element to close the menu if clicked outside
+  //the menu. Remove listener after closing the menu
+  countryBtn.addEventListener('click', function() {
 
-  sourceBtn.addEventListener('click', function(e) {
-  	e.preventDefault();
+  	for(let i = 0; i < countryDropDown.length; i++) {
+  	  	countryDropDown[i].classList.add('open');
+  	}
+  	//when the dropdown is open, set a listener on the body element
+  	document.body.addEventListener('click', closeMenus);
+  });
+
+  sourceBtn.addEventListener('click', function() {
+
   	for(let i = 0; i < sourceDropDown.length; i++) {
-  		sourceDropDown[i].classList.toggle('open');
-  }});
+  		sourceDropDown[i].classList.add('open');
+  	}
+  	document.body.addEventListener('click', closeMenus);
+  });
+
+  function closeMenus(e) {
+  	//if the click is outside the country and source dropdowns
+  	//then get all the dropdown elements with class 'open' and remove it i.e hide it
+  	if(e.target.id !== 'country-btn' && e.target.id != 'source-btn' && e.target.id !== 'country-input' && e.target.id !== 'source-input') {
+  		document.body.removeEventListener('click', closeMenus);
+  		let allOpenDropDowns = document.querySelectorAll('.open');
+  		for(let i = 0; i < allOpenDropDowns.length; i++) {
+  			allOpenDropDowns[i].classList.remove('open');
+  		}
+  	}
+  }
 
   //listen for a click on the items, change the button's data-* value and
   //content to the selected country's data value and content
@@ -221,195 +242,342 @@ function setUp() {
   	}
   });
 
-  //when the filter button is clicked, call selectNews() to run a search to
-  //select the type of news we want to display
-  searchNewsByCountryButton.onclick = newsByCountry;
-  searchNewsBySourceButton.onclick = newsBySource;
-
-  function newsByCountry(e) {
-  	//stop the form performing its default action- submitting
+  //when the filter button is clicked, call appropriate function to search to
+  //search the type of news we want to display
+  searchNewsByCountryButton.addEventListener('click', function(e) {
   	e.preventDefault();
-
-  	if(country.innerHTML === lastCountry) {
-  		return;
-  	} else {
-  		//update the record of last country
-  		lastCountry = country.innerHTML;
-
-  		//Set the select source dropdown to 'Select Source'
-  		source.innerHTML = 'select source';
-  		//remove active status from source;
-  		document.querySelector('.source-nav-container').classList.remove('active');
-		sourceBtn.classList.remove('active');
-
-		let countryCode = countryBtn.dataset.cCode;
-		let url = `https://newsapi.org/v2/top-headlines?country=${countryCode}&apiKey=${API_KEY}`;
-		let req = new Request(url);
-
-	  	fetch(req)
-	  		.then(function(response) {
-	    		if(response.ok) {
-	      			return response.json();
-	    		} else {
-	      			console.log(`Network request for ${url} failed with response ${response.status}: ${response.statusText}`);
-	    		}
-	  		})
-	  		.then(function(data) {
-	    		finalResult = data;
-	    		updateDisplay();
-	  		});
-  	}
-  }
-
-  function newsBySource(e) {
-  	//stop the form performing its default action- submitting
+  	app.newsByCountry();
+  });
+  searchNewsBySourceButton.addEventListener('click', function(e) {
   	e.preventDefault();
+  	app.newsBySource();
+  });
+};
 
-  	if(source.innerHTML === lastSource) {
-  		return;
-  	} else {
-  		//update the record of last source
-  		lastSource = source.innerHTML;
+app.newsByCountry = function() {
 
-  		//Set the select country dropdown to 'Select Country'
-  		country.innerHTML = 'select country';
-  		//remove active look from country
-		document.querySelector('.countrynav-container').classList.remove('active');
-		countryBtn.classList.remove('active');
+	if(country.innerHTML === lastCountry) {
+		return;
+	} else {
+	  //update the record of last country
+	  lastCountry = country.innerHTML;
 
-		let sourceCode = sourceBtn.dataset.sCode;
-		let url = `https://newsapi.org/v2/top-headlines?sources=${sourceCode}&apiKey=${API_KEY}`;
-		let req = new Request(url);
+	  //Set the select source dropdown to 'Select Source'
+	  source.innerHTML = 'select source';
+	  //remove active status from source;
+	  document.querySelector('.source-nav-container').classList.remove('active');
+	  sourceBtn.classList.remove('active');
 
-	  fetch(req)
-	  .then(function(response) {
+	  let countryCode = countryBtn.dataset.cCode;
+	  let url = `https://newsapi.org/v2/top-headlines?country=${countryCode}&apiKey=${API_KEY}`;
+	  let req = new Request(url);
+
+  	  fetch(req).then(function(response) {
 	    if(response.ok) {
-	      return response.json();
+			return response.json();
 	    } else {
-	      console.log(`Network request for ${url} failed with response ${response.status}: ${response.statusText}`);
-	    }
-	  })
-	  .then(function(data) {
-	    finalResult = data;
-	    updateDisplay();
-	  });
-  	}
-  }
+			console.log(`Network request for ${url} failed with response ${response.status}: ${response.statusText}`);
+		}
+  		}).then(function(data) {
+  		  app.storeInDb(data).then(function(){
+				console.log('headlines saved in Indexed DB, data is now available for offline use');
+			});
+		  app.updateDisplay(data);
+  		}).catch(function(error){    //if we can't connect to the network...
+			console.log('Network request have failed, we are offline');
+			app.showCachedHeadlines().then(function(offlineData) {
+			if(!offlineData.length) {
+				console.log('No data recieved from the Indexed db');
+			} else {
+				console.log('you might be viewing an outdated content');
+				app.updateDisplay(offlineData);
+			}
+		});
+		});
+	}
+};
 
-  function updateDisplay() {
-  	//remove previous contents(children) of the <main> element
-  	while(main.firstChild) {
-      main.removeChild(main.firstChild);
-  	}
+app.newsBySource = function() {
 
-  	//if no news was found based on the search term, display a message.
-  	if(finalResult.length === 0) {
-  		let div = document.createElement('div');
-  	  	let para = document.createElement('p');
-  	  	para.textContent = 'No News to display from this search!';
-  	  	div.appendChild(para);
-  	  	main.appendChild(div);
-  	//for each news in the array, pass its object to fetchBlob() to get the image if any.
-  	} else {
-  		for(let i = 0; i < finalResult.articles.length; i++) {
-  			fetchBlob(finalResult.articles[i]);
-  		}
-  	}
-  }
+	if(source.innerHTML === lastSource) {
+		return;
+	} else {
+	  //update the record of last source
+	  lastSource = source.innerHTML;
 
-  //fetch the image url, then send the image url and the news object for display
-  function fetchBlob(news) {
-  	var url = news.urlToImage;
+	  //Set the select country dropdown to 'Select Country'
+	  country.innerHTML = 'select country';
+	  //remove active look from country
+	  document.querySelector('.countrynav-container').classList.remove('active');
+	  countryBtn.classList.remove('active');
 
-  	//fetch the image and convert resulting response to a blob- data that isn't necessarily in a JS-native format.
-  	fetch(url)
-  		.then(function(response) {
-  			if(response.ok) {
-  				return response.blob();
-  			} else {
-  				console.log(`Network Request for ${news.source.name} news image failed with ${response.code}: ${response.message}`);
-  			}
-  		})
-  		.then(function(blob) {
-			//convert the blob to an object URL
-			objectURL = URL.createObjectURL(blob);
-			//call displayNews
-			displayNews(objectURL, news);
-  		});
-  }
+	  let sourceCode = sourceBtn.dataset.sCode;
+	  let url = `https://newsapi.org/v2/top-headlines?sources=${sourceCode}&apiKey=${API_KEY}`;
+	  let req = new Request(url);
 
-  //display news inside <main> element
-  function displayNews(objectURL, news) {
-    let section = document.createElement('section');
-    let imageDiv = document.createElement('div');
-    let newsDiv = document.createElement('div');
-    let heading = document.createElement('h3');
-    let para = document.createElement('p');
-    let image = document.createElement('img');
-    let newsLink = document.createElement('a');
-    let newsDate = document.createElement('span');
+	  fetch(req).then(function(response) {
+	    return response.json();
+	  }).then(function(data) {
+	  	app.storeInDb(data).then(function(){
+			console.log('headlines saved in Indexed DB, data is now available for offline use');
+		});
+	    app.updateDisplay(data);
+	  }).catch(function(error){    //if we can't connect to the network...
+			console.log('Network request have failed, we are offline');
+			app.showCachedHeadlines().then(function(offlineData) {
+			if(!offlineData.length) {
+				console.log('No data recieved from the Indexed db');
+			} else {
+				console.log('you might be viewing an outdated content');
+				app.updateDisplay(offlineData);
+			}
+		});
+		});
+	}
+};
+
+app.updateDisplay = function(finalResult) {
+	//remove previous contents(children) of the <main> element
+	while(main.firstChild) {
+  		main.removeChild(main.firstChild);
+	}
+
+	//if no news was found based on the search term, display a message.
+	if(!finalResult) {
+		let div = document.createElement('div');
+	  	let para = document.createElement('p');
+	  	para.textContent = 'No News to display from this search!';
+	  	div.appendChild(para);
+	  	main.appendChild(div);
+	} else {
+		if(finalResult.articles){
+			for(let i = 0; i < finalResult.articles.length ; i++) {
+				app.displayNews(finalResult.articles[i]);
+			}
+		}
+		//headlines in DB will be in an array
+		for(let i = 0; i < finalResult.length; i++) {
+			app.displayNews(finalResult[i]);
+		}
 
 
-    //give the elements a classname defined in css for styling purposes.
-    section.setAttribute('class', 'news-feed');
-    imageDiv.setAttribute('class', 'news-image-wrapper');
-    newsDiv.setAttribute('class', 'news-box');
-    newsLink.setAttribute('target', '_blank');
+	}
+};
 
-    //give h2 textContent equal to news "title" property, but with the first character
-    //replaced with the uppercase version of the first character
-    heading.textContent = news.title.replace(news.title.charAt(0), news.title.charAt(0).toUpperCase());
+//display news inside <main> element
+app.displayNews = function(news) {
+	let section = document.createElement('section');
+	let imageDiv = document.createElement('div');
+	let newsDiv = document.createElement('div');
+	let heading = document.createElement('h3');
+	let para = document.createElement('p');
+	let image = document.createElement('img');
+	let newsLink = document.createElement('a');
+	let newsDate = document.createElement('span');
 
-    //give p element the description property
-    para.textContent = news.description;
+	//give the elements a classname defined in css for styling purposes.
+	section.setAttribute('class', 'news-feed');
+	imageDiv.setAttribute('class', 'news-image-wrapper');
+	newsDiv.setAttribute('class', 'news-box');
+	newsLink.setAttribute('target', '_blank');
 
-    //give the a element a href link of the url property
-    newsLink.href = news.url;
+	//give h2 textContent equal to news "title" property, but with the first character
+	//replaced with the uppercase version of the first character
+	heading.textContent = news.title.replace(news.title.charAt(0), news.title.charAt(0).toUpperCase());
 
-    //get time of news
-    newsDate.textContent = news.publishedAt;
+	//give p element the description property
+	para.textContent = news.description;
 
-    //set news image
-    image.src = objectURL;
-    image.alt = news.title;
+	//give the a element a href link of the url property
+	newsLink.href = news.url;
 
-    //append the elements to the DOM to add the news to the UI
-    main.appendChild(section);
-    section.appendChild(imageDiv).appendChild(image);
-    section.appendChild(newsDiv).appendChild(heading);
-    section.appendChild(newsDiv).appendChild(newsLink).appendChild(para);
-    section.appendChild(newsDiv).appendChild(newsDate);
-  }
+	//get time of news
+	newsDate.textContent = news.publishedAt;
 
-  serviceWorker(news);
+	//set news image
+	//image.src = objectURL;
+	image.src = news.urlToImage;
+	image.alt = news.title;
+
+	//append the elements to the DOM to add the news to the UI
+	main.appendChild(section);
+	section.appendChild(imageDiv).appendChild(image);
+	section.appendChild(newsDiv).appendChild(heading);
+	section.appendChild(newsDiv).appendChild(newsLink).appendChild(para);
+	section.appendChild(newsDiv).appendChild(newsDate);
+};
+
+function openDb(data) {
+	if('serviceWorker' in navigator) {
+	  	//create database news-24/7 and object store headlines with date('publishedAt') as primary key
+	    return idb.open('news-24/7', 1, function(upgradeDb) {
+	    	let newsStore = upgradeDb.createObjectStore('headlines', { keyPath: 'publishedAt' });
+	    	//create an index 'by-date', that looks at the 'publishedAt' property of the stored object
+	    	newsStore.createIndex('by-date', 'publishedAt');
+	    });
+	}
 }
 
-function serviceWorker(data) {
-//Register service worker here
-//check if service worker is supported in the users browser
+app.storeInDb = function(finalResult) {
+	return dbPromise.then(function(db) {
+		if(!db) return;
+  		let tx = db.transaction('headlines', 'readwrite');
+  		let store = tx.objectStore('headlines');
+  		finalResult.articles.forEach(function(headline) {
+    		store.put(headline);
+  		});
+  		//clean the database by removing the oldest post. keep the newest 20 and delete the rest
+  		//null and prev makes the cursor go backwards through the index/store
+  		//TO FIX: to get the last headlines from the news source or country visited when offline
+  		//Delete from the beginning not after 20. this ensure that the last news viewed will be show when offline
+  		store.index('by-date').openCursor(null, 'prev').then(function(cursor) {
+  			return cursor.advance(20);  //advance pass the newsest 20 post.
+  		}).then(function deleteRest(cursor) {  //delete post after 20
+  			if(!cursor) return;                //if the post is undefined, return, else delete
+  			cursor.delete();
+  			return cursor.continue().then(deleteRest); //call same function to loop through the remaining entry
+  		});
+	});
+};
+
+app.showCachedHeadlines = function() {
+	//show cached headlines if we're not showing any headlines already
+	//use index to group by a particular item. in this case group by date.
+    return dbPromise.then(function(db) {
+      if(!db) return;
+      let index = db.transaction('headlines')
+        .objectStore('headlines').index('by-date');
+      return index.getAll();
+    }).then(function(headlines) {
+        //pass the headlines for display. .reverse() ensures that we get the last, first.
+        return headlines.reverse();
+    });
+};
+
+//we want to only have cache of only the images currently on the page
+app.cleanImageCache = function() {
+	console.log('in clean image cache');
+	//get all the news headlines in the news-24/7 object store
+	//gather all the photo urls
+	//open the headline-news-images cache, and delete any entry that is no longer needed
+	let imagesNeeded = [];
+
+	return dbPromise.then(function(db) {
+		if(!db) return;
+		let tx = db.transaction('headlines');
+		return tx.objectStore('headlines').getAll().then(function(headlines) {
+			headlines.forEach(function(headline) {
+				if(headline.urlToImage) {
+					//put the url of the current images in the browser in imagesNeeded
+					imagesNeeded.push(headline.urlToImage);
+				}
+			});
+			return caches.open('headline-news-images');
+		}).then(function(cache) {
+			return cache.keys().then(function(requests) {
+				requests.forEach(function(request) {
+					let url = new URL(request.url);
+
+					//if the url of the images in the cache does not include any
+					//in the images needed then delete.
+					if(!imagesNeeded.includes(url.href)) {
+						console.log('deleting image not on the page currently...');
+						cache.delete(request);
+					}
+				});
+			});
+		});
+	});
+};
+
+//Entry point. Show users news from their location by default.
+app.detectUserLocation();
+//app.initiateDefaultSetup('ng', 'nigeria');
+
+//clean the image cache...
+app.cleanImageCache();
+
+//...every 5 seconds
+setInterval(function() {
+	app.cleanImageCache();
+}, 1000 * 60 * 5);
+
+  //SERVICE WORKER
+  //for update notification
+  let newWoker;
+  let notification = document.querySelector('.notification');
+  let refresh = document.querySelector('#refresh');
+  let dismiss = document.querySelector('#dismiss');
+
+  function trackInstalling(worker) {
+  	//sw fires an event statechange whenever the value of the state property changes
+  	worker.addEventListener('statechange', function() {
+  		if(worker.state == 'installed') {
+  			updateReady(worker);
+  		}
+  	});
+  }
+
+  function updateReady(worker) {
+  	newWorker = worker;
+  	showMessage();
+  }
+
+  function showMessage() {
+  	notification.classList.add('show-notification');
+  	//show the message after delaying for some seconds to allow the page to load up
+  	//setTimeout(function() {
+  	//notification.classList.add('show-notification');
+  	//}, 8000);
+  }
+
+  function removeMessage() {
+  	notification.classList.remove('show-notification');
+  }
+
+  refresh.addEventListener('click', function() {
+	//send a message to the sw
+	newWorker.postMessage({message: 'skipWaiting'});
+	removeMessage();
+  });
+
+  dismiss.addEventListener('click', function() {
+	removeMessage();
+	//TODO: call showmessage to show again, after some length of time.
+  });
+
+  //To install a service worker
+  //Register it in your page. This tell the brower where the service worker js file lives
+  //check if service worker is supported in the users browser
   if('serviceWorker' in navigator) {
     navigator.serviceWorker
        .register('/service-worker.js')
        .then(function(reg) {
-          //if there's no controller, the page wasn't loaded via a sw, so they're looking
+
+          //if there's no controller, the page wasn't loaded via a sw, it
+          //was loaded from the network. so we're looking
           //at the latest version. if that's the case, exit early
           if(!navigator.serviceWorker.controller) {
           	return;
           }
 
-          //if there's a worker waiting, call updateReady()
+          //if there's a worker waiting, there's an update ready
           if(reg.waiting) {
-          	updateReady();
+          	updateReady(reg.waiting);
           	return;
           }
 
-          //if there's a worker installing, listen to its state changes
+          //if there's a worker installing, there is an update in progress
+          //the object may fail, so we listen to the statechanges to track it
+          //and if it reaches the install state, we tell the user about it...
           if(reg.installing) {
           	trackInstalling(reg.installing);
           	return;
           }
 
-          //listen for updates, once there's one call trackInstalling()
+          //...otherwise listen for the updatefound event, when it fires
+          //track the state of the installing worker and if it reaches
+          //the install state, we tell the user
           reg.addEventListener('updatefound', function() {
           	trackInstalling(reg.installing);
           });
@@ -419,69 +587,11 @@ function serviceWorker(data) {
           console.log('sw registration failed');
         });
 
+    //reload web page to activate the new sw
     let refreshing;
     navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    window.location.reload();
-    refreshing = true;
-  });
-  }
-
-  if('serviceWorker' in navigator) {
-    let dbPromise = idb.open('news-24/7', 1, function(upgradeDb) {
-      let store = upgradeDb.createObjectStore('headlines', {
-        keyPath: 'publishedAt'
-      });
-      store.createIndex('by-date', 'publishedAt');
-    });
-
-    dbPromise.then(function(db) {
-      let tx = db.transaction('headlines', 'readwrite');
-      let store = tx.objectStore('headlines');
-      console.log(data.articles);
-      data.articles.forEach(function(headline) {
-        store.put(headline);
-      });
-    });
-
-    dbPromise.then(function(db) {
-      if(!db) return;
-      let index = db.transaction('headlines')
-        .objectStore('headlines').index('by-date');
-
-      return index.getAll().then(function(headlines) {
-        //pass the headlines for display
-        news = headlines.reverse();
-      });
-    });
-  }
-
-}
-
-  function trackInstalling(worker) {
-  	worker.addEventListener('statechange', function() {
-  		if(worker.state == 'installed') {
-  			updateReady();
-  		}
+    	if (refreshing) return;
+   		window.location.reload();
+    	refreshing = true;
   	});
-  }
-
-  function updateReady() {
-  	let div = document.createElement('div');
-  	let para = document.createElement('p');
-  	let cancel = document.createElement('span');
-  	let update = document.createElement('span');
-  	let main = document.querySelector('main');
-
-  	div.setAttribute('class', 'notification');
-  	cancel.setAttribute('class', 'cancel');
-  	cancel.setAttribute('id', 'cancel');
-  	update.setAttribute('class', 'update');
-  	update.setAttribute('id', 'update');
-
-  	main.appendChild(div);
-  	para.innerHTML = 'New headlines available: ';
-  	div.appendChild(para);
-  	div.appendChild(cancel);
-  	div.appendChild(update);
   }

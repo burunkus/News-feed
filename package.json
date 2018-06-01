@@ -1,7 +1,22 @@
 {
-  "name": "news headlines",
+  "name": "news-headlines",
   "version": "1.0.0",
+  "main": "index.js",
+  "author": "Okpala Ebuka Johnbosco",
+  "description": "A progressive web app that dispalys latest news headlines based on country and source",
   "devDependencies": {
-    "idb": "^2.1.1"
-  }
+    "idb": "^2.1.1",
+    "browserify": "latest",
+    "watchify": "latest"
+  },
+  "scripts": {
+  	"build-js": "browserify js/app.js > js/bundle.js",
+  	"watch-js": "watchify js/app.js -o bundle.js -v"
+  },
+  "repository": {
+  	"type": "git",
+  	"url": "https://github.com/burunkus/news-feed.git"
+  },
+  "keywords": ["progressive web app", "offline web app"],
+  "license": "ISC"
 }
